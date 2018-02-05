@@ -1,0 +1,279 @@
+/*
+ * Author : Frederick Bloom / hanasaki
+ */
+//
+// This file is to be applied to every subproject.
+//
+
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'project-report' // htmlDependencyReport, projectReport, dependencyReport
+
+//group = myProjectGroup
+//version = '1.2.3'
+//version = myProjectVersion
+//sourceCompatibility = myProjectSrcVersion
+ext.isSnapshot = version.endsWith("-SNAPSHOT")
+
+task printVersion {
+    // any code that goes here is part of configuring the task
+    // this code will always get run, even if the task is not executed
+    //    doLast { // add a task action
+    // any code that goes here is part of executing the task
+    // this code will only get run if and when the task gets executed
+    println  "Building => ${project.group}:${project.name}:${project.version} // src/target=${sourceCompatibility}/${targetCompatibility}"
+    //    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral();
+    // You may define additional repositories, or even remove "mavenCentral()".
+    // Read more about repositories here:
+    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
+
+    maven { url "https://plugins.gradle.org/m2" }
+}
+
+//apply plugin: id com.dorongold.task-tree" version "1.3"
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral();
+        // You may define additional repositories, or even remove "mavenCentral()".
+        // Read more about repositories here:
+        //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
+
+        maven { url "https://plugins.gradle.org/m2" }
+    }
+    dependencies {
+        classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.3"
+    }
+    //    plugins {
+    //        id "com.dorongold.task-tree" version "1.3"
+    //    }
+}
+
+
+
+//build {
+//    plugins{
+//        plugin {
+//            groupId 'org.apache.maven.plugins'
+//            artifactId 'maven-compiler-plugin'
+//            configuration{
+//                source '1.8'
+//                target '1.8'
+//            }
+//        }
+//    }
+//}
+
+
+dependencies {
+    // Adding dependencies here will add the dependencies to each subproject.
+    compile "joda-time:joda-time:2.2"
+    testCompile "junit:junit:4.12"
+
+    // TODO: Add dependencies here ...
+    // You can read more about how to add dependency here:
+    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
+
+}
+
+task jarMain(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+task jarMainSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+task jarMainJavaDoc(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+task jarTest(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'test'
+    from sourceSets.test.output
+}
+task jarTestSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives jarMain
+    archives jarMainSources
+    archives jarMainJavaDoc
+    archives jarTest
+    archives jarTestSources
+}
+
+configure(install.repositories.mavenInstaller) {
+    pom.project {
+        groupId = project.group
+        artifactId = project.name
+        version = project.version
+    }
+}
+
+task createFolders(description: 'Creates the source folders if they do not exist.') doLast {
+    sourceSets*.allSource*.srcDirs*.each { File srcDir ->
+        if (!srcDir.isDirectory()) {
+            println "Creating source folder: ${srcDir}"
+            srcDir.mkdirs()
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+            'Manifest-Version': '1.0',
+            'Main-Class': 'com.Main',
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Build-Time-ISO-8601': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ss"),
+            'Built-By': System.getProperty('user.name'),
+            'Built-JDK': System.getProperty('java.version'),
+            'Built-Host': InetAddress.getLocalHost().getCanonicalHostName(),
+            'OS-Name': System.getProperties().get("os.name"),
+            'Source-Compatibility': project.sourceCompatibility,
+            'Target-Compatibility': project.targetCompatibility,
+            'Class-Path': configurations.compile.collect { it.getName() }.join(' ')
+        )
+    }
+}
+
+task createPom  {
+    pom {
+        project {
+            groupId project.group
+            artifactId project.name
+            version project.version
+
+            inceptionYear '2008'
+            licenses {
+                license {
+                    name 'The Apache Software License, Version 2.0'
+                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    distribution 'repo'
+                }
+            }
+        }
+    }.writeTo("pom-generated.xml")
+}
+
+allprojects {
+    project.version = rootProject.version
+
+}
+
+
+//reports {
+//    htmlDependencyReport {
+//        projects = project.allprojects
+//    }
+//    html {
+//        enabled false
+//    }
+//    xml.destination "build/reports/myReport.xml"
+//}
+
+//buildTypes {
+//    debug {
+//        versionNameSuffix "-SNAPSHOT"
+//        //        versionNameSuffix ".${gitCommitCount}"
+//    }
+//
+//    release {
+//        minifyEnabled true
+//        //        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+//        signingConfig signingConfigs.config
+//    }
+//}
+
+subprojects {
+    apply from: rootProject.file('common.gradle')
+}
+
+//subprojects {
+//    hello {
+//        doLast {
+//            println "GAV = ${project.group}:${project.name}:${project.version}"
+//            println "- from subproject $project.name"
+//        }
+//    }
+//}
+
+
+//===========
+if (plugins.hasPlugin('android') || plugins.hasPlugin('android-library')) {
+    android {
+        defaultConfig {
+            versionName = calculateVersionName()
+            versionCode = calculateVersionCode()
+        }
+
+        afterEvaluate {
+            def autoIncrementVariant = { variant ->
+                if (variant.buildType.name == buildTypes.release.name) { // don't increment on debug builds
+                    variant.preBuild.dependsOn incrementVersion
+                    incrementVersion.doLast {
+                        variant.mergedFlavor.versionName = calculateVersionName()
+                        variant.mergedFlavor.versionCode = calculateVersionCode()
+                    }
+                }
+            }
+            if (plugins.hasPlugin('android')) {
+                applicationVariants.all { variant -> autoIncrementVariant(variant) }
+            }
+            if (plugins.hasPlugin('android-library')) {
+                libraryVariants.all { variant -> autoIncrementVariant(variant) }
+            }
+        }
+    }
+}
+
+
+//================
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            credentials {
+                username "anonymous"
+            }
+
+            if(project.version.endsWith('-SNAPSHOT')) {
+                url "http://example/artifactory/libs-snapshot-local"
+            } else {
+                url "http://example/artifactory/libs-release-local"
+            }
+        }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    // Call your methods here using the task graph
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: 'http://myCompanyRepo.com:8081/releases') {
+                authentication(userName: 'admin', password: 'password');
+            }
+            snapshotRepository(url: 'http://myCompanyRepo.com:8081/snapshots') {
+                authentication(userName: 'admin', password: 'password');
+            }
+        }
+    }
+}

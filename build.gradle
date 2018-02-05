@@ -1,0 +1,129 @@
+/*
+ * Author : Frederick Bloom / hanasaki
+ */
+
+import org.gradle.api.artifacts.*
+
+apply plugin: 'base' // To add "clean" task to the root project.
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+task mergedJavadoc(type: Javadoc, description: 'Creates Javadoc from all the projects.') {
+    title = 'All modules'
+    destinationDir = new File(project.buildDir, 'merged-javadoc')
+
+    // Note: The closures below are executed lazily.
+    source {
+        subprojects*.sourceSets*.main*.allSource
+    }
+    classpath.from {
+        objects*.configurations*.compile*.copyRecursive({ !(it instanceof ProjectDependency); })*.resolve()
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.4.1' //version required
+}
+
+//===========
+
+ext {
+    //    Properties props = new Properties()
+    //    props.load(new FileInputStream("$project.rootDir/profile/"+"$environment"+".properties"))
+    //    props.each { prop ->
+    //        project.ext.set(prop.key, prop.value)
+    //    }
+
+    versionFile = new File(project.rootDir, 'version.properties')
+    calculateVersionName = {
+        def versionProps = readVersion()
+        return "${versionProps['major']}.${versionProps['minor']}.${versionProps['patch']}-${versionProps['build']}"
+    }
+    //    calculateVersionCode = {
+    //        def version = readVersion()
+    //        def major = version['major'] as int // 1..∞
+    //        def minor = version['minor'] as int // 0..99
+    //        def patch = version['patch'] as int // 0..99
+    //        def build = version['build'] as int // 0..999
+    //        return (major * 100 + minor) * 1000 + build
+    //    }
+    //    version=${major}.${minor}.${patch}-${build}
+    //    version=calculateVersionName()
+
+}
+
+version=ext.calculateVersionName()
+project.version=ext.calculateVersionName()
+
+apply from: 'common.gradle'
+
+allprojects {
+    version = rootProject.version
+    group = rootProject.group
+    [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+    //    sourceCompatibility = java.src.version
+    //    targetCompatibility = java.target.version
+}
+
+Properties readVersion() {
+    def version = new Properties()
+    def stream
+    try {
+        stream = new FileInputStream(versionFile)
+        version.load(stream)
+    } catch (FileNotFoundException ignore) {
+        println ignore.toString()
+    } finally {
+        if (stream != null) stream.close()
+    }
+    // safety defaults in case file is missing
+    if(!version['major']) version['major'] = "1"
+    if(!version['minor']) version['minor'] = "0"
+    if(!version['patch']) version['minor'] = "0"
+    if(!version['build']) version['build'] = "0"
+    return version
+}
+
+void incrementVersionNumber() {
+    def version = readVersion()
+
+    // careful with the types, culprits: "9"++ = ":", "9" + 1 = "91"
+    def build = version['build'] as int
+    build++
+    version['build'] = build.toString()
+    def stream = new FileOutputStream(versionFile)
+    try {
+        version.store(stream, null)
+    } finally {
+        stream.close()
+    }
+}
+
+//task distribution {
+//    doLast {
+//        println "We build the zip with version=$version"
+//    }
+//}
+//
+//task release(dependsOn: 'distribution') {
+//    doLast {
+//        println 'We release now'
+//    }
+//}
+
+gradle.taskGraph.whenReady {taskGraph ->
+    //    if (taskGraph.hasTask(assembleDebug)) {  /* when run debug task */
+    //        incrementVersionNumber()
+    //    } else if (taskGraph.hasTask(assembleRelease)) { /* when run release task */
+    //        incrementVersionNumber()
+    //    } else
+    //    if (!taskGraph.hasTask(release)) {
+    //        //        rootProject.version='1.1.5'
+    //        version='-SNAPSHOT'
+    //    }
+    if (taskGraph.hasTask(assemble)) {
+        incrementVersionNumber()
+    }
+}
+

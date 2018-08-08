@@ -1,14 +1,22 @@
 /*
- * Author : Frederick Bloom / hanasaki
+ * Copyright 2010-** : Frederick Bloom / hanasaki
+ *
+ * Licensed under : TBD
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 //
 // This file is to be applied to every subproject.
 //
 
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
-apply plugin: 'project-report' // htmlDependencyReport, projectReport, dependencyReport
+//apply plugin: 'java'
+//apply plugin: 'maven'
+//apply plugin: 'maven-publish'
+//apply plugin: 'project-report' // htmlDependencyReport, projectReport, dependencyReport
 
 //group = myProjectGroup
 //version = '1.2.3'
@@ -37,24 +45,6 @@ repositories {
 }
 
 //apply plugin: id com.dorongold.task-tree" version "1.3"
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral();
-        // You may define additional repositories, or even remove "mavenCentral()".
-        // Read more about repositories here:
-        //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
-
-        maven { url "https://plugins.gradle.org/m2" }
-    }
-    dependencies {
-        classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.3"
-    }
-    //    plugins {
-    //        id "com.dorongold.task-tree" version "1.3"
-    //    }
-}
-
 
 
 //build {
@@ -69,64 +59,6 @@ buildscript {
 //        }
 //    }
 //}
-
-
-dependencies {
-    // Adding dependencies here will add the dependencies to each subproject.
-    compile "joda-time:joda-time:2.2"
-    testCompile "junit:junit:4.12"
-
-    // TODO: Add dependencies here ...
-    // You can read more about how to add dependency here:
-    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
-
-}
-
-task jarMain(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-task jarMainSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-task jarMainJavaDoc(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-task jarTest(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
-    classifier = 'test'
-    from sourceSets.test.output
-}
-task jarTestSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-artifacts {
-    archives jarMain
-    archives jarMainSources
-    archives jarMainJavaDoc
-    archives jarTest
-    archives jarTestSources
-}
-
-configure(install.repositories.mavenInstaller) {
-    pom.project {
-        groupId = project.group
-        artifactId = project.name
-        version = project.version
-    }
-}
-
-task createFolders(description: 'Creates the source folders if they do not exist.') doLast {
-    sourceSets*.allSource*.srcDirs*.each { File srcDir ->
-        if (!srcDir.isDirectory()) {
-            println "Creating source folder: ${srcDir}"
-            srcDir.mkdirs()
-        }
-    }
-}
 
 jar {
     manifest {
@@ -147,68 +79,261 @@ jar {
         )
     }
 }
+task jarMainSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+    manifest {
+        attributes(
+            'Manifest-Version': '1.0',
+            'Main-Class': 'com.Main',
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Build-Time-ISO-8601': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ss"),
+            'Built-By': System.getProperty('user.name'),
+            'Built-JDK': System.getProperty('java.version'),
+                        'Built-Host-Name': InetAddress.getLocalHost().getCanonicalHostName(),
+            'Built-Host-IP': InetAddress.getLocalHost().getHostAddress(),
+            'OS-Name': System.getProperties().get("os.name"),
+            'Source-Compatibility': project.sourceCompatibility,
+            'Target-Compatibility': project.targetCompatibility,
+            'Class-Path': configurations.compile.collect { it.getName() }.join(' ')
+        )
+    }
+}
+//task javadocp(type: Javadoc) {
+//    source subprojects.sourceSets*.main*.allJava
+//    classpath = files(subprojects.sourceSets*.main*.compileClasspath)
+//    options.docletpath = configurations.javadoclet.files.asType(List)
+//    options.doclet = 'org.umlgraph.doclet.UmlGraphDoc'
+//    options.classpath subprojects.sourceSets*.main*.classesDir
+//    options.memberLevel = 'PRIVATE'
+//    // These result in the option not being passed at all.
+//    options.addStringOption('inferrel', null)
+//    options.addStringOption('inferrel')
+//    // This results in an empty string as an argument to the option, which is invalid.
+//    options.addStringOption('inferrel', '')
+//}
+// https://docs.gradle.org/current/javadoc/org/gradle/external/javadoc/MinimalJavadocOptions.html
+compileJava {
+    options.compilerArgs << "-Xlint:all"
+}
 
-task createPom  {
-    pom {
-        project {
-            groupId project.group
-            artifactId project.name
-            version project.version
+javadoc {
+    options.encoding = 'UTF-8'
+    options.memberLevel = 'PROTECTED'
+    //    options.addStringOption 'Xdoclint:syntax,html,reference', '-quiet'
+    //    options.addStringOption 'Xdoclint:akll'
+    //    if (javaVersion.isJava8Compatible()) {
+    //    options.addStringOption 'Xdoclint:syntax,reference', '-warn'
+    //    options.addStringOption 'Xdoclint:syntax,html,reference', '-warn'
+    options.addStringOption 'doclint:all'
+    //    }
+    //    options.addStringOption "stylesheetfile", stylesheetFile.absolutePath
+    //    source publicGroovyProjects.collect {project -> project.sourceSets.main.allJava }
+    //    options.footer = 'hanaden.com'
+    //    options.bottom = 'bottomtext'
+    //    options.header ="dddddddddddddddd"
+}
+task jarMainJavaDoc(type: Jar, dependsOn: javadoc) {
+    //    options.addStringOption('encoding', 'UTF-8')
+    //    options.addBooleanOption('html5', true)
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+    //    if(JavaVersion.current().isJava9Compatible()) {
+    //        options.addBooleanOption('html4', true)
+    //    }
+    manifest {
+        attributes(
+            'Manifest-Version': '1.0',
+            'Main-Class': 'com.Main',
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Build-Time-ISO-8601': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ss"),
+            'Built-By': System.getProperty('user.name'),
+            'Built-JDK': System.getProperty('java.version'),
+                        'Built-Host-Name': InetAddress.getLocalHost().getCanonicalHostName(),
+            'Built-Host-IP': InetAddress.getLocalHost().getHostAddress(),
+            'OS-Name': System.getProperties().get("os.name"),
+            'Source-Compatibility': project.sourceCompatibility,
+            'Target-Compatibility': project.targetCompatibility,
+            'Class-Path': configurations.compile.collect { it.getName() }.join(' ')
+        )
+    }
+}
+task jarTest(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'test'
+    from sourceSets.test.output
+    manifest {
+        attributes(
+            'Manifest-Version': '1.0',
+            'Main-Class': 'com.Main',
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Build-Time-ISO-8601': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ss"),
+            'Built-By': System.getProperty('user.name'),
+            'Built-JDK': System.getProperty('java.version'),
+            'Built-Host-Name': InetAddress.getLocalHost().getCanonicalHostName(),
+            'Built-Host-IP': InetAddress.getLocalHost().getHostAddress(),
+            'OS-Name': System.getProperties().get("os.name"),
+            'Source-Compatibility': project.sourceCompatibility,
+            'Target-Compatibility': project.targetCompatibility,
+            'Class-Path': configurations.compile.collect { it.getName() }.join(' ')
+        )
+    }
+}
+task jarTestSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'test-sources'
+    from sourceSets.main.allSource
+    manifest {
+        attributes(
+            'Manifest-Version': '1.0',
+            'Main-Class': 'com.Main',
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Build-Time-ISO-8601': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ss"),
+            'Built-By': System.getProperty('user.name'),
+            'Built-JDK': System.getProperty('java.version'),
+            'Built-Host-Name': InetAddress.getLocalHost().getCanonicalHostName(),
+            'Built-Host-IP': InetAddress.getLocalHost().getHostAddress(),
+            'OS-Name': System.getProperties().get("os.name"),
+            'Source-Compatibility': project.sourceCompatibility,
+            'Target-Compatibility': project.targetCompatibility,
+            'Class-Path': configurations.compile.collect { it.getName() }.join(' ')
+        )
+    }
+}
 
-            inceptionYear '2008'
-            licenses {
-                license {
-                    name 'The Apache Software License, Version 2.0'
-                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    distribution 'repo'
-                }
-            }
+compileTestJava {
+    sourceCompatibility = 1.9
+    targetCompatibility = 1.9
+    options.compilerArgs += '-parameters'
+}
+
+test {
+    useJUnitPlatform()
+    reports.junitXml.destination="build/junit/test-results"
+    reports.html.destination="build/junit/test-reports"
+    //    printSummary=true
+
+    //    jacoco {
+    //        destinationFile = file("build/jacoco/jacoco.exec")
+    //        append=true
+    //    }
+    // use the syntax below to exclude based on filepath
+    // exclude(["**/webdriver/*", "**/pagefactory/*"] as List)
+    // The syntax below works for Tags - either String names or Tag objects work
+    options {
+        setExcludeTags(["Framework", "Blocking", "Navigation"] as Set)
+    }
+    // Finally we have access to parallel running for junit 5 tests!
+    maxParallelForks 4
+    //    useJUnitPlatform {
+    // platformVersion '1.0.0'
+    //        filters {
+    //            engines {
+    //                // include 'junit-jupiter', 'junit-vintage'
+    //                // exclude 'custom-engine'
+    //            }
+    //            tags {
+    //                // include 'fast'
+    //                exclude 'slow'
+    //            }
+    //            // includeClassNamePattern '.*Test'
+    //        }
+    // configurationParameter 'junit.jupiter.conditions.deactivate', '*'
+    // enableStandardTestTask true
+    // reportsDir file('build/test-results/junit-platform') // this is the default
+    //        logManager 'org.apache.logging.log4j.jul.LogManager'
+    // https://docs.gradle.org/current/userguide/jacoco_plugin.html
+    jacoco {
+        append = false
+        //        destPath = file("${buildDir}/jacoco/test-results")
+        destinationFile = file("$buildDir/jacoco/test-results/test.exec") // netbeans finds file test.exec
+        classDumpDir = file("$buildDir/jacoco/test-results/classpathdumps")
+    }
+    jacocoTestReport {
+        reports {
+            xml.enabled true
+            csv.enabled true
+            html.enabled  true
+            html.destination file("${buildDir}/jacoco/test-reports")
         }
-    }.writeTo("pom-generated.xml")
+    }
 }
 
-allprojects {
-    project.version = rootProject.version
-
-}
-
-
-//reports {
-//    htmlDependencyReport {
-//        projects = project.allprojects
-//    }
-//    html {
-//        enabled false
-//    }
-//    xml.destination "build/reports/myReport.xml"
+//configurations {
+//    junitXmlToHtml
 //}
-
-//buildTypes {
-//    debug {
-//        versionNameSuffix "-SNAPSHOT"
-//        //        versionNameSuffix ".${gitCommitCount}"
-//    }
+//// https://stackoverflow.com/questions/39444908/how-to-create-an-html-report-for-junit-5-tests
+//task generateHtmlTestReports << {
+//    def reportsDir = new File(buildDir, 'junit/test-reportsB')
+//    reportsDir.mkdirs()
 //
-//    release {
-//        minifyEnabled true
-//        //        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-//        signingConfig signingConfigs.config
+//    ant.taskdef(
+//        name: 'junitReport',
+//        classname: 'org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator',
+//        classpath: configurations.junitXmlToHtml.asPath
+//        //        classpath: ['org.apache.ant:ant-junit:1.10.5', 'ant:ant-optional:1.5.3-1']
+//    )
+//
+//    ant.junitReport(todir: "$buildDir/junit/test-results/junit-platform", tofile: "aggregated-test-results.xml") {
+//        fileset(dir: "$buildDir/test-results/junit-platform")
+//        report(format: 'frames', todir: reportsDir)
 //    }
 //}
+//afterEvaluate {
+//    def junitPlatformTestTask = tasks.getByName('junitPlatformTest')
+//    generateHtmlTestReports.dependsOn(junitPlatformTestTask)
+//    check.dependsOn(generateHtmlTestReports)
+//}
 
-subprojects {
-    apply from: rootProject.file('common.gradle')
-}
 
-//subprojects {
-//    hello {
-//        doLast {
-//            println "GAV = ${project.group}:${project.name}:${project.version}"
-//            println "- from subproject $project.name"
+//jacocoTestReport {
+//    reports {
+//        xml.enabled true
+//        csv.enabled true
+//        html.destination "${buildDir}/jacoco/test-reports"
+//    }
+//    test {
+//        jacoco {
+//            destinationFile = file("$buildDir/jacoco/test-results/jacocoTest.exec")
+//            //            reportsDir = file("$buildDir/customJacocoReportDir")
+//            //            classDumpFile = file("$buildDir/jacoco/classpathdumps")
+//            //excludes =
 //        }
 //    }
 //}
 
+artifacts {
+    //    archives jarMain
+    archives jarMainSources
+    archives jarMainJavaDoc
+    archives jarTest
+    archives jarTestSources
+}
+
+//configure(install.repositories.mavenInstaller) {
+//    pom.project {
+//        groupId = project.group
+//        artifactId = project.name
+//        version = project.version
+//    }
+//}
+
+task createFolders(description: 'Creates the source folders if they do not exist.') doLast {
+    sourceSets*.allSource*.srcDirs*.each { File srcDir ->
+        if (!srcDir.isDirectory()) {
+            println "Creating source folder: ${srcDir}"
+            srcDir.mkdirs()
+        }
+    }
+}
+
+//createPom.dependsOn build
 
 //===========
 if (plugins.hasPlugin('android') || plugins.hasPlugin('android-library')) {
@@ -244,6 +369,41 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
+            artifact jarMainSources
+            artifact jarMainJavaDoc
+            artifact jarTest
+            artifact jarTestSources
+            afterEvaluate {
+                artifactId = jar.baseName
+            }
+            pom {
+                groupId project.group
+                artifactId project.name
+                version project.version
+                //
+                name = project.name
+                description = 'A concise description of my library'
+                url = 'http://www.example.com/library'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'johnd'
+                        name = 'John Doe'
+                        email = 'john.doe@....com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://....com/my-library.git'
+                    developerConnection = 'scm:git:ssh://...com/my-library.git'
+                    url = 'http://....com/my-library/'
+                }
+            }
+
         }
     }
     repositories {
@@ -277,3 +437,5 @@ uploadArchives {
         }
     }
 }
+
+defaultTasks 'clean', 'build', 'publishToMavenLocal'

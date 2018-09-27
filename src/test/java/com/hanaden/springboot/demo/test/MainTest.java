@@ -11,6 +11,7 @@
  */
 package com.hanaden.springboot.demo.test;
 
+import com.hanaden.springboot.demo.Main;
 import java.util.Calendar;
 import java.util.Date;
 import org.junit.jupiter.api.AfterAll;
@@ -42,5 +43,10 @@ public class MainTest {
         Calendar calender = Calendar.getInstance();
         Date startTime = calender.getTime();
         startTime.setHours(0); // ----> is depreacted
+    }
+
+    @Test
+    public void mainTest() {
+        Main.main(new String[0]);
     }
 }

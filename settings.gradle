@@ -1,6 +1,7 @@
 /*
  * Author : Frederick Bloom / hanasaki
  */
+rootProject.name = 'hello-world.gradle'
 enableFeaturePreview('STABLE_PUBLISHING')
 def subDirs = rootDir.listFiles(new FileFilter() {
         public boolean accept(File file) {

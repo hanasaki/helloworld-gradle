@@ -30,7 +30,8 @@ task printVersion {
     //    doLast { // add a task action
     // any code that goes here is part of executing the task
     // this code will only get run if and when the task gets executed
-    println  "Building => ${project.group}:${project.name}:${project.version} // src/target=${sourceCompatibility}/${targetCompatibility}"
+    println "Gradle.Version => ${project.gradle.gradleVersion}"
+    println "Building => ${project.group}:${project.name}:${project.version} // src/target=${sourceCompatibility}/${targetCompatibility}"
     //    }
 }
 
@@ -184,9 +185,9 @@ task jarTest(type: Jar, dependsOn: classes, description: 'Creates a jar from the
         )
     }
 }
-task jarTestSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+task jarTestSources(type: Jar, dependsOn: classes, description: 'Creates a jar from the source test files.') {
     classifier = 'test-sources'
-    from sourceSets.main.allSource
+    from sourceSets.test.allSource
     manifest {
         attributes(
             'Manifest-Version': '1.0',
@@ -213,8 +214,20 @@ compileTestJava {
     options.compilerArgs += '-parameters'
 }
 
+
 test {
     useJUnitPlatform()
+    //        junitPlatform {
+    //            filters {
+    //                engines {
+    //                    include 'junit-jupiter', 'junit-vintage'
+    //                }
+    //                tags {
+    //                    exclude 'slow'
+    //                }
+    //                includeClassNamePatterns '.*Test', '.*Tests'
+    //            }
+    //        }
     reports.junitXml.destination="build/junit/test-results"
     reports.html.destination="build/junit/test-reports"
     //    printSummary=true
@@ -251,9 +264,11 @@ test {
     // https://docs.gradle.org/current/userguide/jacoco_plugin.html
     jacoco {
         append = false
+        enabled = true
         //        destPath = file("${buildDir}/jacoco/test-results")
         destinationFile = file("$buildDir/jacoco/test-results/test.exec") // netbeans finds file test.exec
         classDumpDir = file("$buildDir/jacoco/test-results/classpathdumps")
+        //        reportsDir = file("$buildDir/jacoco/test-results") // readonly by plugin
     }
     jacocoTestReport {
         reports {
@@ -268,7 +283,7 @@ test {
 //configurations {
 //    junitXmlToHtml
 //}
-//// https://stackoverflow.com/questions/39444908/how-to-create-an-html-report-for-junit-5-tests
+////// https://stackoverflow.com/questions/39444908/how-to-create-an-html-report-for-junit-5-tests
 //task generateHtmlTestReports << {
 //    def reportsDir = new File(buildDir, 'junit/test-reportsB')
 //    reportsDir.mkdirs()
@@ -286,8 +301,8 @@ test {
 //    }
 //}
 //afterEvaluate {
-//    def junitPlatformTestTask = tasks.getByName('junitPlatformTest')
-//    generateHtmlTestReports.dependsOn(junitPlatformTestTask)
+//    def junitPlatformTestTask = tasks.getByName('test')
+//    generateHtmlTestReports.dependsOn(test)
 //    check.dependsOn(generateHtmlTestReports)
 //}
 
